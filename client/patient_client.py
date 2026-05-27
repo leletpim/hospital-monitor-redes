@@ -22,22 +22,106 @@ METRICS = {
 
 
 def send_reading_tcp(metric, value, unit):
-    # TODO: montar o dicionário JSON com patient_id, metric, value, unit, timestamp, token
-    # TODO: conectar via TCP, enviar, receber resposta, calcular e imprimir RTT
-    # TODO: verificar se a resposta contém "command" e imprimir se houver
-    pass
+    data = {
+        "patient_id": PATIENT_ID,
+        "type": metric,
+        "value": value,
+        "unit": unit,
+        "timestamp": datetime.now().isoformat(),
+        "token": TOKEN
+    }
 
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+        client.connect((SERVER_HOST, TCP_PORT))
+
+        start_time = time.time()
+
+        client.sendall(json.dumps(data).encode())
+
+        response = client.recv(1024)
+
+        end_time = time.time()
+
+        rtt = (end_time - start_time) * 1000
+
+        response_data = json.loads(response.decode())
+
+        print(f"[TCP] {metric}: {value:.2f} {unit} | RTT: {rtt:.2f} ms")
+
+        if "command" in response_data:
+            print("Comando recebido:", response_data["command"])
+
+    except Exception as e:
+        print("Erro TCP:", e)
+
+    finally:
+        client.close()
 
 def send_reading_udp(metric, value, unit):
-    # TODO: mesmo que TCP, mas usando socket UDP (SOCK_DGRAM e sendto/recvfrom)
-    pass
+    data = {
+        "patient_id": PATIENT_ID,
+        "type": metric,
+        "value": value,
+        "unit": unit,
+        "timestamp": datetime.now().isoformat(),
+        "token": TOKEN
+    }
 
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    try:
+        start_time = time.time()
+
+        client.sendto(
+            json.dumps(data).encode(),
+            (SERVER_HOST, UDP_PORT)
+        )
+
+        response, _ = client.recvfrom(1024)
+
+        end_time = time.time()
+
+        rtt = (end_time - start_time) * 1000
+
+        response_data = json.loads(response.decode())
+
+        print(f"[UDP] {metric}: {value:.2f} {unit} | RTT: {rtt:.2f} ms")
+
+        if "command" in response_data:
+            print("Comando recebido:", response_data["command"])
+
+    except Exception as e:
+        print("Erro UDP:", e)
+
+    finally:
+        client.close()
 
 def run():
-    # TODO: loop infinito que alterna entre TCP e UDP a cada ciclo
-    # TODO: para cada ciclo, enviar todas as métricas de METRICS
-    # TODO: usar random.uniform(min, max) para gerar os valores
-    pass
+    use_tcp = True
+
+    while True:
+        for metric, info in METRICS.items():
+
+            value = random.uniform(info["min"], info["max"])
+
+            if use_tcp:
+                send_reading_tcp(
+                    metric,
+                    value,
+                    info["unit"]
+                )
+            else:
+                send_reading_udp(
+                    metric,
+                    value,
+                    info["unit"]
+                )
+
+        use_tcp = not use_tcp
+
+        time.sleep(INTERVAL)
 
 
 if __name__ == "__main__":
