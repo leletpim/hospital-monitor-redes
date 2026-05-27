@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Hospital Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #ddd;
+        }
+
+        .WARNING {
+            background-color: yellow;
+        }
+
+        .CRITICAL {
+            background-color: orange;
+        }
+
+        .EMERGENCY {
+            background-color: red;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Hospital Monitor Dashboard</h1>
+
+    <div class="card">
+        <h2>Métricas do Servidor</h2>
+        <div id="metrics"></div>
+    </div>
+
+    <h2>Últimas Leituras</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Paciente</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Unidade</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+
+        <tbody id="readings-table"></tbody>
+    </table>
+
+    <h2>Alertas</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nível</th>
+                <th>Mensagem</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+
+        <tbody id="alerts-table"></tbody>
+    </table>
+
+    <script>
+
+        async function loadReadings() {
+
+            const response = await fetch("http://localhost:8081/readings");
+
+            const data = await response.json();
+
+            const table = document.getElementById("readings-table");
+
+            table.innerHTML = "";
+
+            data.forEach(item => {
+
+                table.innerHTML += `
+                    <tr>
+                        <td>${item.patient_id}</td>
+                        <td>${item.type}</td>
+                        <td>${item.value}</td>
+                        <td>${item.unit}</td>
+                        <td>${item.timestamp}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function loadAlerts() {
+
+            const response = await fetch("http://localhost:8081/alerts");
+
+            const data = await response.json();
+
+            const table = document.getElementById("alerts-table");
+
+            table.innerHTML = "";
+
+            data.forEach(item => {
+
+                table.innerHTML += `
+                    <tr class="${item.level}">
+                        <td>${item.level}</td>
+                        <td>${item.message}</td>
+                        <td>${item.timestamp}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function loadMetrics() {
+
+            const response = await fetch("http://localhost:8081/metrics");
+
+            const data = await response.json();
+
+            document.getElementById("metrics").innerHTML = `
+                <p><strong>Mensagens:</strong> ${data.messages_received}</p>
+                <p><strong>Bytes:</strong> ${data.bytes_received}</p>
+                <p><strong>Uptime:</strong> ${data.uptime}</p>
+            `;
+        }
+
+        async function updateDashboard() {
+
+            loadReadings();
+
+            loadAlerts();
+
+            loadMetrics();
+        }
+
+        updateDashboard();
+
+        setInterval(updateDashboard, 5000);
+
+    </script>
+
+</body>
+
+</html>
